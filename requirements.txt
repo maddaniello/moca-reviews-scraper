@@ -1,0 +1,5 @@
+Flask==3.0.0
+apify-client==1.7.1
+openai==1.50.0
+requests==2.31.0
+packaging==23.2
