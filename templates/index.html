@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moca Reviews Scraper</title>
+    <link rel="icon" href="https://mocainteractive.com/wp-content/uploads/2025/04/cropped-moca-instagram-icona-1-192x192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Update Banner -->
+    <div id="update-banner" class="update-banner hidden">
+        <div class="update-content">
+            <span class="update-icon">🔔</span>
+            <div class="update-text">
+                <strong>Nuova versione disponibile!</strong>
+                <span id="update-version"></span>
+            </div>
+            <button id="btn-update" class="btn-update">Scarica Aggiornamento</button>
+            <button id="btn-dismiss-update" class="btn-dismiss">✕</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <img src="https://mocainteractive.com/wp-content/uploads/2025/04/cropped-moca-instagram-icona-1-192x192.png" alt="Moca">
+                <h1>Google Maps Reviews Scraper</h1>
+            </div>
+            <button id="btn-history" class="btn-icon" title="Storico Ricerche">
+                📚 Storico
+            </button>
+        </header>
+
+        <!-- Step 1: Configurazione -->
+        <section id="step-config" class="card">
+            <h2>⚙️ Configurazione</h2>
+            
+            <div class="form-group">
+                <label for="api-token">Apify API Token *</label>
+                <input type="password" id="api-token" placeholder="apify_api_...">
+            </div>
+
+            <!-- Selezione modalità input -->
+            <div class="form-group">
+                <label>Modalità di Ricerca *</label>
+                <div class="input-mode-tabs">
+                    <button type="button" class="mode-tab active" data-mode="brand">🔍 Cerca per Brand</button>
+                    <button type="button" class="mode-tab" data-mode="urls">🔗 Inserisci URL Manuali</button>
+                </div>
+            </div>
+
+            <!-- Modalità Brand -->
+            <div id="mode-brand" class="input-mode-content">
+                <div class="form-group">
+                    <label for="brand-name">Nome Brand *</label>
+                    <input type="text" id="brand-name" placeholder="es. Primadonna, Vittoria Assicurazioni">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="max-places">Max Schede</label>
+                        <input type="number" id="max-places" value="20" min="1" max="50">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="max-reviews">Max Recensioni/Scheda</label>
+                        <input type="number" id="max-reviews" value="100" min="1" max="1000">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modalità URL Manuali -->
+            <div id="mode-urls" class="input-mode-content hidden">
+                <div class="form-group">
+                    <label for="manual-urls">URL Schede Google Maps (uno per riga) *</label>
+                    <textarea id="manual-urls" rows="8" placeholder="https://www.google.com/maps/place/...
+https://www.google.com/maps/place/...
+https://maps.app.goo.gl/..."></textarea>
+                    <small class="help-text">Inserisci gli URL completi delle schede Google Maps, uno per riga. Supportati: URL /place/, maps.app.goo.gl, place_id</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="max-reviews-manual">Max Recensioni per Scheda</label>
+                    <input type="number" id="max-reviews-manual" value="100" min="1" max="1000">
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <label>
+                    <input type="checkbox" id="enable-ai">
+                    <span>🤖 Abilita Analisi AI (OpenAI)</span>
+                </label>
+            </div>
+
+            <div id="ai-config" class="form-group hidden">
+                <label for="openai-key">OpenAI API Key *</label>
+                <input type="password" id="openai-key" placeholder="sk-...">
+                <small class="help-text">Analisi con GPT-4: wordcloud, punti forza/debolezza, suggerimenti</small>
+            </div>
+
+            <button id="btn-search" class="btn btn-primary">🔍 Cerca Schede</button>
+        </section>
+
+        <!-- Step 2: Selezione Schede -->
+        <section id="step-selection" class="card hidden">
+            <h2>📍 Schede Trovate</h2>
+            <p class="info-text">Seleziona le schede da analizzare</p>
+            
+            <div class="selection-actions">
+                <button id="btn-select-all" class="btn btn-secondary">✓ Seleziona Tutto</button>
+                <button id="btn-deselect-all" class="btn btn-secondary">✗ Deseleziona Tutto</button>
+            </div>
+
+            <div id="places-list" class="places-list"></div>
+
+            <button id="btn-scrape" class="btn btn-primary">🚀 Avvia Scraping</button>
+        </section>
+
+        <!-- Step 3: Progress -->
+        <section id="step-progress" class="card hidden">
+            <h2>⏳ Scraping in Corso...</h2>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <p id="progress-text" class="progress-text">Inizializzazione...</p>
+        </section>
+
+        <!-- Step 4: Risultati -->
+        <section id="step-results" class="card hidden">
+            <h2>📊 Risultati</h2>
+            <div id="results-container"></div>
+        </section>
+    </div>
+
+    <!-- Modal Storico -->
+    <div id="history-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📚 Storico Ricerche</h2>
+                <button class="modal-close" id="btn-close-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="history-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-clear-history" class="btn btn-secondary">🗑️ Cancella Tutto</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <!-- jsPDF Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pdf-export.js') }}"></script>
+</body>
+</html>
